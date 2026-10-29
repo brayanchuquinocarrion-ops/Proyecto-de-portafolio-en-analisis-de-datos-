@@ -1,0 +1,2036 @@
+---
+title: "VF Análisis de la Encuesta de Bienestar Estudiantil 2026"
+author: "Brayan Javier Chuquino Carrion"
+date: "2026-10-23"
+output: pdf_document
+header-includes:
+  - '\usepackage{caption}'
+  - '\captionsetup[table]{justification=centering,singlelinecheck=false}'
+  - '\renewcommand{\tablename}{Tabla}'
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# 1. Diseño muestral
+## 1.1 Población y metas de encuesta
+
+La población objetivo del estudio se encuentra conformada por los estudiantes de pregrado matriculados en las seis facultades de la universidad. En ese sentido, primero verificamos el número total de la población del estudio y verificamos el total de las metas de encuestas establecidas por facultad y, dentro de cada facultad, por sexo.
+
+```{r importar_archivos, echo=FALSE}
+library(readxl)
+
+matriculados <- read_excel("Información del estudio.xlsx",
+                           sheet = "Matriculados")
+metas <- read_excel("Información del estudio.xlsx",
+                    sheet = "Metas")
+
+N <- sum(matriculados$matriculados, na.rm = TRUE)
+n_meta <- sum(metas$meta, na.rm = TRUE)
+
+resumen_poblacion_muestra <- data.frame(
+  Indicador = c("Población objetivo", "Meta planificada de encuestas"),
+  Total = c(N, n_meta)
+)
+
+knitr::kable(
+  resumen_poblacion_muestra,
+  col.names = c("Indicador", "Total"),
+  format.args = list(big.mark = ".", decimal.mark = ","),
+  caption = "Población objetivo y meta planificada de encuestas"
+)
+```
+
+Se utilizó el paquete Readxl para importar el archivo Excel relevante para analizar el Diseño muestral. En ese sentido, se importaron las hojas "Matriculados" y "Metas" del archivo Información del Estudio. Luego se sumó  el total de alumnos matriculados por facultad para verificar el tamaño de la población, obteniendo como resultado un total de 18600 estudiantes matriculados. Asimismo, se calculó la suma de la meta de encuestas asignadas por facultad para conocer el tamaño de la muestra, obteniendo así un valor de 1231 . Estos valores serán relevantes para reconstruir el diseño de la medición del 2026.
+
+## 1.2 Estimación del tamaño de la muestra
+
+Para estimar el tamaño de la muestra se utilizará la fórmula para calcular la muestra en una población finita, ya que se conoce el total de nuestra población de estudio. Asimismo, se asumirá la aplicación de un efecto de diseño, ya que al levantar información por salones de clase se asume que se está realizando un muestreo por conglomerados. El muestreo por conglomerados se justifica en que los distintos grupos de estudiantes que forman parte de un mismo salón de clase representan una unidad de la muestra. En ese sentido, cada unidad de la muestra puede presentar características compartidas, lo que puede producir que las respuestas de los estudiantes de un mismo salón aporte menos información independiente en comparación de si se hubiera aplicado un muestreo aleatorio simple. Tras la estimación del tamano de la muestra el valor fue de 1230,08.
+
+```{r estimación_muestral, include=FALSE}
+z <- 1.96
+p <- 0.30
+q <- 1 - p
+e <- 0.035
+deff <- 2
+
+n <- (N * z^2 * p * q * deff) / (e^2 * (N - 1) + z^2 * p * q * deff)
+
+n_final <- ceiling(n)
+
+n_final
+```
+## 1.3 Justificación de los parámetros utilizados en la estimación muestral
+
+La fórmula utilizada para la estimación se define de la siguiente manera:
+
+$$
+n = \frac{N Z^2 p q \cdot DEFF}
+{e^2(N-1) + Z^2 p q \cdot DEFF}
+$$
+
+Donde:  
+$n$ = Tamaño de la muestra,  
+$N$ = Tamaño de la población,  
+$z$ = Nivel de confianza,  
+$p$ = Proporción estimada,  
+$q$ = Proporción complementaria,  
+$e$ = Margen de error,  
+$deff$ = Efecto de diseño.
+
+El valor de N es de 18600, ya que este corresponde al tamaño de la población que fue calculado anteriormente. Con respecto a z su valor es de 1,96, dado que en los términos de referencia de la consultoría se establece un 95% de confianza para el indicador principal. El valor de p es de 0,30, ya que se toma como referencia el valor de 30% registrado por el indicador principal en el estudio de 2024. El valor de q se calcula como "1 - p", por lo que su valor es de 0,70. Para el margen de error utilizamos 0,035, ya que los términos de referencia establecen un margen de error de ±3,5 puntos porcentuales. En relación con el valor del efecto de diseño se asume un valor de 2, principalmente por dos motivos. En primer lugar, debido a que las guías de encuestas por conglomerados utilizan este valor como supuesto práctico, aunque es preciso señalar que este valor depende, a su vez, de las características de los grupos y del número de observaciones que lo conforman. En segundo lugar, ya que al reconstruir el diseño de la medición y asumir un valor de dos este corresponde con el tamaño de la meta de encuestas planificadas. De este modo, se comprueba la consistencia en la estimación del tamaño de la muestra y las metas de encuestas brindadas.
+
+## 1.4 Análisis de los tamaños de la muestra tras la aplicación de distintos valores en el efecto del diseño
+
+A continuación se analiza la sensibilidad de la estimación muestral ante distintos valores del efecto de diseño. En este ejercicio se observa una correspondencia entre las metas de encuestas planificadas y el tamaño muestral cuando su valor es 2, a diferencia de cuando se asume el valor de 1 o 1,5.
+
+```{r supuesto_deff, echo=FALSE}
+deff_supuestos <- c(1, 1.5, 2)
+
+n_supuestos <- (N * z^2 * p * q * deff_supuestos) /
+  (e^2 * (N - 1) + z^2 * p * q * deff_supuestos)
+
+tabla_deff <- data.frame(
+  deff = deff_supuestos,
+  n_supuestos,
+  n_supuestos_redondeado = ceiling(n_supuestos)
+)
+
+# Dar formato de tabla a los resultados
+
+knitr::kable(
+  tabla_deff,
+  col.names = c(
+    "Efecto de diseño",
+    "Tamaño estimado",
+    "Tamaño redondeado"
+  ),
+  digits = 1,
+  caption = "Tamaño de muestra estimado según el efecto de diseño"
+)
+```
+
+## 1.5 Determinación de la aplicación de la encuesta por facultad y sexo
+
+Para la distribución de las cuotas de aplicación de la encuesta en los estudiantes matriculados de pregrado se realiza un cálculo de proporciones en relación con la facultad y el sexo. Por lo tanto, la fórmula utilizada es la siguiente:
+
+n_h = redondear(n * N_h / N)
+
+Donde:
+n_h = Cuota de aplicación de la encuesta en el grupo h
+n = Tamaño de la muestra
+N_h =  Total de estudiantes matriculados en el grupo h  
+N = Tamaño de la población
+
+De este modo, se define la meta de encuestas por facultad y, dentro de cada facultad, por sexo. Se establece este criterio de distribución para mantener la composición de la población, ya que de este modo cada subgrupo es representado de manera proporcional a su peso dentro de la población.
+
+```{r calculo_cuotas, echo=FALSE}
+# Cabe señalar que para el cálculo de estas proporciones el tamaño de la muestra corresponde al valor del objeto "n_final" definido anteriormente.
+
+cuotas_calculadas <- matriculados
+
+cuotas_calculadas$cuota_calculada <- round(
+  n_final * cuotas_calculadas$matriculados / N)
+
+cuotas_calculadas <- merge(
+  cuotas_calculadas,
+  metas,
+  by = c("facultad", "sexo"),
+  sort = FALSE)
+
+knitr::kable(
+  cuotas_calculadas,
+  col.names = c(
+    "Facultad",
+    "Sexo",
+    "Matriculados",
+    "Cuota calculada",
+    "Meta"
+  ),
+  digits = 0,
+  caption = "Cuotas calculadas y metas planificadas por facultad y sexo"
+)
+
+```
+
+## 1.6 Análisis de la cantidad de salones necesarios para cumplir con las cuotas de la encuesta
+
+A fin de calcular el número de salones necesarios para cumplir con las proporciones de la composición de la muestra se tomó como referencia el trabajo de campo realizado en 2024. Primero, se estableció el número de encuestas necesarias a realizarse por facultad para el presente estudio. La agrupación solo se realizó a nivel de facultad ya que la información de la hoja "Campo 2024" del archivo "Información del Estudio" no desagrega la aplicación por sexo.
+
+Luego de ello se calculó el rendimiento promedio de encuestas por salón y por facultad en el estudio del 2024, con el objetivo de estimar cuántos salones serían necesarios seleccionar para alcanzar esas cuotas. De este modo, se logró obtener un número estimado de salones a seleccionar por facultad para cumplir con las proporciones de la composición de la muestra. Es así que para Arte y Diseño son necesarios seleccionar 6 salones, en Ciencias e Ingeniería 19 salones, en Ciencias Sociales 8 salones, en Derecho 9 salones, en Gestión y Negocios 11 salones, y en Letras y Humanidades 7 salones.
+
+```{r agregación_facultad_2026, include=FALSE}
+cuotas_facultad <- aggregate(
+  cuota_calculada ~ facultad,
+  data = cuotas_calculadas,
+  sum)
+
+cuotas_facultad
+```
+```{r, include=FALSE}
+# Importa el archivo
+campo_2024 <- read_excel( "Información del estudio.xlsx",
+  sheet = "Campo 2024"
+)
+
+# Crea una nueva tabla que contiene una columna que indica el número de encuestas logradas por salón
+
+campo_2024_rend <- campo_2024
+
+campo_2024_rend$encuestas_por_salon <-
+  campo_2024_rend$encuestas_validas / campo_2024_rend$salones_aplicados
+```
+
+```{r, echo=FALSE}
+# Une las cuotas por facultad con el rendimiento calculado de 2024
+
+salones_estimados <- merge(
+  cuotas_facultad,
+  campo_2024_rend [c("facultad", "encuestas_por_salon")],
+  by = "facultad",
+  sort = FALSE)
+
+# Crea una columna que calcula cuántos salones se necesitarían por facultad
+
+salones_estimados$salones_necesarios <- ceiling(
+  salones_estimados$cuota_calculada /
+    salones_estimados$encuestas_por_salon)
+
+knitr::kable(
+  salones_estimados,
+  col.names = c(
+    "Facultad",
+    "Cuota Calculada",
+    "Encuestas por salón",
+    "N° de Salones necesarios"
+  ),
+  digits = 0,
+  caption = "Número de salones necesarios para cumplir con las cuotas de la encuesta"
+)
+
+```
+
+
+# 2. Preparación de la base de datos
+
+Como primer paso se cargó el archivo correspondiente a las respuesta obtenidas tras el levantamiento de información en el estudio del 2026. Posteriormente, se verifica la cantidad de filas y columnas que conforman la base de datos, con un total de 1369 y 35, respectivamente. Finalmente, se realiza una verificación de los encabezados de cada columna.
+
+```{r import_files, include=FALSE}
+
+Encuesta_2026 <- read_xlsx("Encuesta 2026 - respuestas.xlsx",
+                           sheet = "Respuestas") 
+
+# Se registra el número de filas inicial
+# Se verifica el número de filas y columnas
+# Se verifica los encabezados de las columnas
+
+row_inicial_Encuesta_2026 <- nrow(Encuesta_2026)
+dim(Encuesta_2026)
+```
+
+```{r, echo=FALSE}
+encabezados <- data.frame(
+  Número = seq_along(names(Encuesta_2026)),
+  Columna = names(Encuesta_2026)
+)
+
+knitr::kable(
+  encabezados,
+  col.names = c(
+    "N°",
+    "Nombre de la columna"
+  ),
+  caption = "Encabezados de las columnas de la base de datos"
+)
+```
+
+## 2.1 Identificación y depuración de ingresos duplicados
+
+A continuación, se creó un nuevo data frame idéntico a la base de datos importada, tras lo cual se realió una primera verificación de entradas duplicadas a partir del Identificador único del envío. Tras ejecutar el código se identificaron 7 observaciones que repiten el Identificador único de envío. Es decir, existían 14 filas con valores duplicados.
+
+Seguidamente se procedió a verificar si la coincidencia se presentaba en todas las respuestas de la encuesta, sin considerar el número de registro ni la fecha y hora en que el envío llegó a la plataforma. Ello dado que tras la revisión de los registros se identificó que las respuestas diferían en el número asignado por la plataforma y en la fecha y hora de recepción. Tras la ejecución del código se observó que todas las otras respuestas al cuestionario se repetían.
+
+En consecuencia, se procedió a crear un nuevo data frame sin las observaciones duplicadas, de modo que el nuevo total era de 1362 filas. Asimismo, se verificó el número total de filas de la base de datos y el nuevo data frame a fin de comprobar que se eliminaron solo las entradas duplicadas.
+
+    Cantidad de filas de la base de datos inicial y la base de datos luego de eliminar las 
+    entradas duplicadas, respectivamente:
+```{r nueva_tabla, echo=FALSE}
+
+# Crea una nueva tabla para no trabajar sobre el archivo importado
+base_analisis <- Encuesta_2026
+
+# Realiza una identificación de las encuestas duplicados a través del identificador de envío 
+duplicados_uuid <- base_analisis[
+  duplicated(base_analisis$uuid) |
+    duplicated(base_analisis$uuid, fromLast = TRUE),
+]
+
+# Verifica la igualdad en las respuestas de las observaciones duplicadas, sin considerar id_registro y hora_envio
+
+columnas_comparar <- setdiff(
+  names(duplicados_uuid),
+  c("id_registro", "hora_envio")
+)
+
+duplicados_iguales <- duplicated(
+  duplicados_uuid[columnas_comparar]
+) |
+  duplicated(
+    duplicados_uuid[columnas_comparar],
+    fromLast = TRUE
+  )
+
+base_analisis_sin_duplicados <- base_analisis[
+  !duplicated(base_analisis$uuid),
+]
+
+resumen_filas <- data.frame(
+  Base = c(
+    "Base de datos inicial",
+    "Base sin entradas duplicadas"
+  ),
+  Filas = c(
+    nrow(base_analisis),
+    nrow(base_analisis_sin_duplicados)
+  )
+)
+
+knitr::kable(
+  resumen_filas,
+  col.names = c("Base de datos", "Cantidad de filas"),
+  digits = 0,
+  caption = "Cantidad de filas antes y después de eliminar duplicados"
+)
+```
+## 2.2 Identificación y depuración de entradas con valores perdidos
+
+Como primera acción se procedió a revisar si existían valores perdidos. Se identificaron 27 columnas que contienen observaciones con valores perdidos. Asimismo, se detectó que varias de estas columnas tenían exactamente 28 registros con valores perdidos, lo cual podría indicar que se tratasen de valores perdidos en las mismas observaciones.
+
+Po lo tanto, se procedió a verificar si correspondían a las mismas observaciones. Tras la ejecución del código se confirmó que los registros coincidían; sin embargo, aún era necesario revisar si se trataban solo de respuestas incompletas. En ese sentido, se verificó que estas observaciones no contenían respuestas en ninguna de las preguntas correspondientes a P5-P10, por lo que se consideraron como respuestas incompletas y se procedieron a retirar del data frame de trabajo. Tras esta depuración el nuevo total ascendía a 1334 filas.
+
+```{r revisar_datos_faltantes, include=FALSE}
+# Revisa si existen datos faltantes
+
+faltantes <- colSums(is.na(base_analisis_sin_duplicados))
+
+# Revisa si las entradas con datos faltantes coinciden en las distintas preguntas del cuestionario
+
+casos_revisar <- base_analisis_sin_duplicados[
+  is.na(base_analisis_sin_duplicados$P5) &
+    is.na(base_analisis_sin_duplicados$P6_1) &
+    is.na(base_analisis_sin_duplicados$P7) &
+    is.na(base_analisis_sin_duplicados$P8) &
+    is.na(base_analisis_sin_duplicados$P9) &
+    is.na(base_analisis_sin_duplicados$P10),
+  c("id_registro", "codigo_salon", "inicio", "fin",
+    "P1", "P1b", "P2", "P3", "P4")
+]
+# Se eliminan las filas con respuestas incompletas
+
+base_analisis_sin_incompletas <- base_analisis_sin_duplicados[
+  !(is.na(base_analisis_sin_duplicados$P5) &
+      is.na(base_analisis_sin_duplicados$P6_1) &
+      is.na(base_analisis_sin_duplicados$P7) &
+      is.na(base_analisis_sin_duplicados$P8) &
+      is.na(base_analisis_sin_duplicados$P9) &
+      is.na(base_analisis_sin_duplicados$P10)),
+]
+
+nrow(base_analisis_sin_incompletas)
+```
+
+## 2.3 Revisión de entradas con valores perdidos 
+
+A continuación se identificó que 2 registros no contaban con respuestas en la columna correspondiente a Código del salón. Al respecto, estas observaciones correspondían a pruebas de registro, tal como se indicaba en sus respuestas en P11, por lo que se procedió a eliminarlos. Por otro lado, 13 registros no contaban con respuestas a la pregunta por el distrito en el que viven; no obstante, se conservaron ya que estas sí contaban con respuestas en las demás preguntas relevantes del cuestionario.
+
+```{r, include =FALSE}
+
+# Identifica los registros sin código de salón
+codigo_salon_limpio <- trimws(
+  as.character(base_analisis_sin_incompletas$codigo_salon)
+)
+
+sin_codigo_salon <- is.na(codigo_salon_limpio) |
+  codigo_salon_limpio == ""
+
+# Estandariza temporalmente P11 para identificar las dos pruebas
+respuesta_p11_limpia <- toupper(
+  trimws(as.character(base_analisis_sin_incompletas$P11))
+)
+
+# Identifica las dos pruebas confirmadas
+registros_prueba <- sin_codigo_salon &
+  respuesta_p11_limpia %in% c("PRUEBA QR", "PRUEBA")
+
+# Cuenta los registros antes y después de excluir las pruebas
+registros_antes <- nrow(base_analisis_sin_incompletas)
+pruebas_excluidas <- sum(registros_prueba)
+
+# Excluye los registros de prueba
+base_analisis_sin_incompletas <- base_analisis_sin_incompletas[
+  !registros_prueba,
+  ,
+  drop = FALSE
+]
+
+registros_despues <- nrow(base_analisis_sin_incompletas)
+```
+
+## 2.4 Verificación de los registros con respecto al consentimiento informado
+
+Seguidamente se procedió a verificar las respuestas obtenidas en relación al consentimiento informado por parte de los encuestados. Se identificó que, tras la depuración de las entradas con valores perdidos, todos los registros consintieron el desarrollo del cuestionario.
+```{r revisar_consentimiento_pruebas, echo=FALSE}
+
+# Cuenta las respuestas de consentimiento, incluidos los datos faltantes
+
+consentimiento<- sum(base_analisis_sin_incompletas$consentimiento == 1)
+no_consentimiento<- sum(base_analisis_sin_incompletas$consentimiento == 2) 
+
+resumen_filas_consentimiento <- data.frame(
+  Base = c(
+    "Brindó su consentimiento",
+    "No brindó su consentimiento"
+  ),
+  Filas = c(consentimiento,
+  no_consentimiento
+  )
+)
+
+knitr::kable(
+  resumen_filas_consentimiento,
+  col.names = c("¿Brindó su consentimiento?", "N° de encuestados"),
+  digits = 0,
+  caption = "Número de encuestados que brindó su consentimiento informado para la aplicación del instrumento."
+)
+```
+## 2.5 Verificación de la mayoría de edad de los encuestados
+
+Para este apartado se procedió a evaluar si todos los encuestados cumplían con la mayoría de edad, tal como se definió para la población objetivo. Tras esta revisión se observaron 9 registros que no cumplían con este criterio, por lo que se procedió a eliminar del data frame de trabajo. El nuevo total, tras la depuración, ascendió a 1323 registros.
+
+```{r, include=FALSE}
+
+edad <-  base_analisis_sin_incompletas$P1
+
+# Cuenta a los menores de 18 años y los registros sin edad
+menores_18 <- sum(!is.na(edad) & edad < 18)
+edad_faltante <- sum(is.na(edad))
+
+# Conserva solo los registros con edad de 18 años o más
+base_analisis_sin_incompletas <- base_analisis_sin_incompletas[
+  !is.na(edad) & edad >= 18,
+  ,
+  drop = FALSE
+]
+
+registros_tras_filtro_edad <- nrow(base_analisis_sin_incompletas)
+registros_tras_filtro_edad
+```
+
+
+## 2.6 Verificación de los registros correspondientes a Código de Salón
+
+En este paso se procedió a verificar los registros de Código de Salón, a fin de identificar si existían inconsistencias con los códigos de salón definidos para el estudio. En ese sentido, se realizó un cruce de información entre ambas bases de datos, lo que nos indicó los siguientes valores no coincidentes. Cabe señalar que previamente se había convertido a mayúsculas todos los registros para evitar problemas de inconsistencias.
+```{r comparar_codigos_salon, echo=FALSE}
+
+# Carga la hoja Campo 2026
+campo_2026 <- read_xlsx( "Información del estudio.xlsx",
+                        sheet = "Campo 2026")
+
+# Uniformiza temporalmente mayúsculas y espacios para comparar
+codigos_encuesta <- toupper(
+  trimws(as.character(base_analisis_sin_incompletas$codigo_salon))
+)
+
+codigos_campo <- toupper(
+  trimws(as.character(campo_2026$codigo_salon))
+)
+
+# Identifica los registros cuyo código no aparece en Campo 2026
+codigos_no_encontrados <- base_analisis_sin_incompletas[
+  !is.na(base_analisis_sin_incompletas$codigo_salon) &
+    !(codigos_encuesta %in% codigos_campo),
+  "codigo_salon",
+  drop = FALSE
+]
+
+# Muestra los códigos originales no encontrados
+
+tabla_codigos_no_encontrados <- as.data.frame(
+  table(codigos_no_encontrados$codigo_salon)
+)
+
+knitr::kable(
+  tabla_codigos_no_encontrados,
+  col.names = c("Código de salón", "Frecuencia"),
+  digits = 0,
+  caption = "Códigos de salón y frecuencias no coincidentes para los Código de Salón definidos para el estudio"
+)
+
+```
+Tras esta verificación se eliminaron solo los registros correspondientes a "PRUEBA", "prueba_01" y "test". Dado que estos representaban 6 registros, el date frame quedó tras la depuración con 1328 registros.
+```{r retirar_pruebas, include=FALSE}
+
+# Identifica los códigos correspondientes a pruebas
+codigos_prueba <- c("PRUEBA", "prueba_01", "test")
+
+# Crea una base sin esos registros
+base_analisis_sin_pruebas <- base_analisis_sin_incompletas[
+  !(base_analisis_sin_incompletas$codigo_salon %in% codigos_prueba),
+]
+
+# Quita espacios sobrantes y convierte los códigos de salón a mayúsculas
+base_analisis_sin_pruebas$codigo_salon <- toupper(
+  trimws(as.character(base_analisis_sin_pruebas$codigo_salon))
+)
+
+# Compara el número de registros antes y después
+nrow(base_analisis_sin_incompletas)
+nrow(base_analisis_sin_pruebas)
+
+```
+
+```{r verificar_codigos_tras_pruebas, echo=FALSE}
+# Estandariza temporalmente los códigos para compararlos
+codigos_encuesta <- toupper(trimws(
+  as.character(base_analisis_sin_pruebas$codigo_salon)
+))
+
+codigos_campo <- toupper(trimws(
+  as.character(campo_2026$codigo_salon)
+))
+
+# Identifica códigos de la encuesta que no aparecen en Campo 2026
+codigos_no_encontrados <- base_analisis_sin_pruebas[
+  !is.na(base_analisis_sin_pruebas$codigo_salon) &
+    !(codigos_encuesta %in% codigos_campo),
+  "codigo_salon",
+  drop = FALSE
+]
+
+# Muestra los códigos y cuántas veces aparecen
+
+tabla_codigos_tras_pruebas <- as.data.frame(
+  table(codigos_no_encontrados$codigo_salon)
+)
+
+knitr::kable(
+  tabla_codigos_tras_pruebas,
+  col.names = c("Código de salón", "Frecuencia"),
+  digits = 0,
+  caption = "Valores y frecuencias no coincidentes para Código de Salón que se mantuvieron en la base de
+    datos tras la depuración"
+)
+```
+## 2.7 Estandarización de los registros correspondientes a Distrito de Residencia
+
+Para el proceso de estandarización de la variable Distrito de Residencia primero se revisó los registros obtenidos y sus frecuencias. Tras ello se observó gran variabilidad en la digitación de esta variable, de modo tal que se procedió en primer lugar a eliminar las tildes, unificar los nombres de los distritos, definir los distritos fuera de Lima y del Callao como "Fuera de Lima Metropolitana", y establecer los valores restantes no identificados como valores faltantes. Finalmente, se conviertieron todos los registros a mayúsculas, a fin de facilitar el análisis de los mismos.
+
+```{r estandarizar_distritos, echo=FALSE}
+# Prepara una versión temporal de las respuestas
+P1b_categoria <- tolower(
+  trimws(as.character(base_analisis_sin_pruebas$P1b))
+)
+
+# Protege la ñ mientras se quitan las demás tildes
+P1b_categoria <- gsub(
+  "ñ", "ENIE_TEMPORAL", P1b_categoria,
+  fixed = TRUE
+)
+
+P1b_categoria <- iconv(
+  P1b_categoria,
+  to = "ASCII//TRANSLIT"
+)
+
+P1b_categoria <- gsub(
+  "ENIE_TEMPORAL", "ñ", P1b_categoria,
+  fixed = TRUE
+)
+
+# Unifica abreviaturas y variantes de distritos
+P1b_categoria[P1b_categoria %in% c("sjl", "s.j.l.")] <-
+  "san juan de lurigancho"
+
+P1b_categoria[P1b_categoria %in% c("smp", "s.m.p.")] <-
+  "san martin de porres"
+
+P1b_categoria[P1b_categoria %in% c(
+  "sjm", "s.j.m.", "san juan de miraflores, lima"
+)] <- "san juan de miraflores"
+
+P1b_categoria[P1b_categoria == "ves"] <-
+  "villa el salvador"
+
+P1b_categoria[P1b_categoria == "vmt"] <-
+  "villa maria del triunfo"
+
+P1b_categoria[P1b_categoria == "surco"] <-
+  "santiago de surco"
+
+P1b_categoria[P1b_categoria %in% c(
+  "vitarte", "ate vitarte"
+)] <- "ate"
+
+P1b_categoria[P1b_categoria %in% c(
+  "rimac", "el rimac"
+)] <- "rimac"
+
+P1b_categoria[P1b_categoria == "miraflores, lima"] <-
+  "miraflores"
+
+P1b_categoria[P1b_categoria %in% c(
+  "cercado", "cercado de lima"
+)] <- "lima"
+
+P1b_categoria[P1b_categoria %in% c(
+  "el callao", "cercado del callao"
+)] <- "callao"
+
+P1b_categoria[P1b_categoria %in% c(
+  "chosica", "lurigancho", "lurigancho - chosica"
+)] <- "lurigancho-chosica"
+
+# Unifica variantes de escritura
+P1b_categoria[P1b_categoria %in% c(
+  "brena", "breña"
+)] <- "breña"
+
+P1b_categoria[P1b_categoria %in% c(
+  "magdalena", "magdalena del mar"
+)] <- "magdalena del mar"
+
+# Agrupa respuestas de lugares fuera de Lima Metropolitana
+P1b_categoria[P1b_categoria %in% c(
+  "cañete", "chancay", "huaral",
+  "huaral, lima provincias",
+  "lima provincias - huaral", "huacho"
+)] <- "fuera de lima metropolitana"
+
+# Convierte en faltantes las respuestas vacías o no identificables
+P1b_categoria[
+  is.na(P1b_categoria) |
+    trimws(P1b_categoria) %in% c(
+      "", "-", "na", "prefiero no decir"
+    )
+] <- NA_character_
+
+# Convierte las categorías a mayúsculas
+P1b_categoria <- toupper(P1b_categoria)
+P1b_categoria <- gsub(
+  "ñ", "Ñ", P1b_categoria,
+  fixed = TRUE
+)
+
+# Reemplaza las respuestas originales por las categorías estandarizadas
+base_analisis_sin_pruebas$P1b <- P1b_categoria
+
+# Calcula las frecuencias, incluidos los datos faltantes
+frecuencias_distritos <- sort(
+  table(base_analisis_sin_pruebas$P1b, useNA = "ifany"),
+  decreasing = TRUE
+)
+
+# Organiza las frecuencias en una tabla
+tabla_distritos <- as.data.frame(
+  frecuencias_distritos,
+  stringsAsFactors = FALSE
+)
+
+tabla_distritos[[1]] <- as.character(tabla_distritos[[1]])
+
+# Presenta los faltantes con una etiqueta más clara
+tabla_distritos[[1]][
+  is.na(tabla_distritos[[1]]) |
+    tabla_distritos[[1]] %in% c("<NA>", "NA")
+] <- "SIN RESPUESTA"
+
+names(tabla_distritos) <- c(
+  "Distrito o categoría",
+  "Frecuencia"
+)
+
+knitr::kable(
+  tabla_distritos,
+  col.names = c("Distrito o categoría", "Frecuencia"),
+  digits = 0,
+  caption = "Distritos de Residencia y frecuencias tras el proceso de estandarización de los registros"
+)
+
+```
+```{r, include=FALSE}
+# Verifica que se mantienen los registros
+nrow(base_analisis_sin_pruebas)
+```
+
+## 2.8 Verificación de los registros correspondientes a Edad
+
+Al revisar los registros obtenidos en Edad se advirtió la existencia de dos valores inconsistentes, específicamente 190 y 210. Puesto que no se tiene evidencia para verificar cuáles serían los valores correctos, se procedió a dejar estos valores como faltantes para evitar errores en el análisis de los datos.
+
+```{r revisar_edad, include=FALSE}
+# Cuenta las respuestas faltantes
+sum(is.na(base_analisis_sin_pruebas$P1))
+
+# Resume las edades registradas
+summary(base_analisis_sin_pruebas$P1)
+
+# Muestra cada edad y cuantas veces aparece
+sort(
+  table(base_analisis_sin_pruebas$P1, useNA = "ifany"),
+  decreasing = TRUE
+)
+```
+```{r depurar_edad, include=FALSE}
+# Muestra los registros con edades anómalas para dejar constancia
+base_analisis_sin_pruebas[
+  base_analisis_sin_pruebas$P1 %in% c(190, 210),
+  c("id_registro", "codigo_salon", "P1")
+]
+
+# Registra como faltantes los valores anómalos en la columna P1
+base_analisis_sin_pruebas$P1[
+  base_analisis_sin_pruebas$P1 %in% c(190, 210)
+] <- NA
+
+# Comprueba cuántas edades faltantes tiene P1
+sum(is.na(base_analisis_sin_pruebas$P1))
+```
+
+## 2.9 Verificación de los registros correspondientes a Ciclo de estudios
+
+Tras la revisión de estos registros se identificaron valores incosistentes y atípicos, tales como 0, 14 y 21. Si bien existe la posibilidad de que un estudiante se encuentre en el Ciclo 0, previo al inicio de su primer ciclo de estudios, es altamente improbable que se encuentre compartiendo aula con estudiantes de ciclos más avanzados. Asimismo, solo existe un registro con este valor, por lo que se procedió a dejar esta entrada como valor faltante, para evitar inconsistencias en el análisis de datos. En resumen, los valores 0, 14 y 21 para Ciclo de estudios fueron registrados como valores faltantes. 
+
+```{r revisar_ciclo, include=FALSE}
+# Cuenta las respuestas registradas en P3
+table(base_analisis_sin_pruebas$P3, useNA = "ifany")
+```
+```{r revisar_ciclos_atipicos, include=FALSE}
+# Muestra los registros con ciclos que requieren revision
+base_analisis_sin_pruebas[
+  base_analisis_sin_pruebas$P3 %in% c(0, 14, 21),
+  c("id_registro", "codigo_salon", "P3")
+]
+```
+```{r depurar_ciclo, include=FALSE}
+# Registra como faltantes en P3 los valores fuera del rango de 1 a 12
+base_analisis_sin_pruebas$P3[
+  base_analisis_sin_pruebas$P3 %in% c(0, 14, 21)
+] <- NA
+
+# Comprueba cuántas respuestas faltantes tiene P3
+sum(is.na(base_analisis_sin_pruebas$P3))
+
+```
+
+## 2.10 Verificación de los registros correspondientes a Horas a la semana trabajadas
+
+En relación con los estudiantes que trabajan y no trabajan los totales son 434 y 894, respectivamente. No obstante, al verificar las horas a la semana trabajadas por los estudiantes que trabajan se registraron valores inconsistentes y atípicos. Los valores inconsistentes corresponden a los estudiante que respondieron que sí trabajaban; sin embargo, registraron 0 y 168 horas trabajadas a la semana. El valor atípico corresponde a un estudiante que registró 120 horas de trabajo a la semana. Dado que no existe suficiente evidencia para afirmar que 120 horas de trabajo a la semana es un error en la digitación, solo se dejó constancia de que es un _outlier_ que podría afectar los cálculos estadísticos posteriores. Con respecto a 0 y 168, estos valores fueron registrados como faltantes.
+```{r revisar_trabajo, include=FALSE}
+# Cuenta las respuestas registradas en P4
+table(base_analisis_sin_pruebas$P4, useNA = "ifany")
+```
+```{r revisar_horas_trabajo, include=FALSE}
+# Cuenta las horas declaradas por quienes respondieron que trabajan
+table(
+  base_analisis_sin_pruebas$P4a[
+    base_analisis_sin_pruebas$P4 == 1
+  ],
+  useNA = "ifany"
+)
+```
+```{r revisar_horas_atipicas, include=FALSE}
+# Muestra los casos que requieren revision
+base_analisis_sin_pruebas[
+  base_analisis_sin_pruebas$P4 == 1 &
+    (
+      is.na(base_analisis_sin_pruebas$P4a) |
+        base_analisis_sin_pruebas$P4a %in% c(0, 120, 168)
+    ),
+  c("id_registro", "codigo_salon", "P4", "P4a")
+]
+```
+```{r depurar_horas_trabajo, include=FALSE}
+# Registra como faltantes los valores 0 y 168
+base_analisis_sin_pruebas$P4a[
+  base_analisis_sin_pruebas$P4a %in% c(0, 168)
+] <- NA
+
+# Revisa las horas entre quienes respondieron que trabajan
+table(
+  base_analisis_sin_pruebas$P4a[
+    base_analisis_sin_pruebas$P4 == 1
+  ],
+  useNA = "ifany"
+)
+```
+
+## 2.11 Estandarización de los formatos para las preguntas con respuestas de Texto libre
+
+En relación con las preguntas P8_otro y la pregunta realizada en P11, correspondiente a preguntas con respuesta de texto libre, solo se realizó el formateo del texto. En ese sentido, se convirtió el texto a mayúsculas, se retiraron los espacios sobrantes al inicio, final y entre palabras, se eliminaron los puntos finales, y se mantuvieron como valores faltantes las respuestas vacías. Cabe indicar que en P11 se mantuvieron las respuestas que incluían ":/" al final de la respuesta, así como el "OK" y el "XD", ya que se consideró que podrían ser respuestas relevantes para otros tipos de análisis no estadísticos.
+
+```{r formatear_otro_p8, include=FALSE}
+# Pasa el texto a mayusculas y quita espacios al inicio y al final
+base_analisis_sin_pruebas$P8_otro <-
+  toupper(trimws(as.character(base_analisis_sin_pruebas$P8_otro)))
+
+# Reduce los espacios repetidos entre palabras
+base_analisis_sin_pruebas$P8_otro <-
+  gsub("\\s+", " ", base_analisis_sin_pruebas$P8_otro)
+
+# Quita los puntos que aparecen al final de la respuesta
+base_analisis_sin_pruebas$P8_otro <-
+  gsub("\\.+$", "", base_analisis_sin_pruebas$P8_otro)
+
+# Registra como faltantes las respuestas que quedaron vacias
+base_analisis_sin_pruebas$P8_otro[
+  base_analisis_sin_pruebas$P8_otro == ""
+] <- NA
+
+# Muestra las respuestas formateadas y sus frecuencias
+sort(table(base_analisis_sin_pruebas$P8_otro, useNA = "ifany"),
+  decreasing = TRUE)
+```
+```{r formatear_texto_p11, include=FALSE}
+# Convierte las respuestas a texto, en mayúsculas y sin espacios sobrantes
+base_analisis_sin_pruebas$P11 <- toupper(
+  trimws(as.character(base_analisis_sin_pruebas$P11))
+)
+
+# Reduce los espacios repetidos a un solo espacio
+base_analisis_sin_pruebas$P11 <- gsub(
+  "\\s+",
+  " ",
+  base_analisis_sin_pruebas$P11
+)
+
+# Elimina los puntos que aparecen al final de la respuesta
+base_analisis_sin_pruebas$P11 <- gsub(
+  "\\.+$",
+  "",
+  base_analisis_sin_pruebas$P11
+)
+
+# Registra como faltantes las respuestas que quedaron vacías
+base_analisis_sin_pruebas$P11[
+  base_analisis_sin_pruebas$P11 == ""
+] <- NA
+
+# Muestra las primeras diez respuestas para revisar el formato
+head(base_analisis_sin_pruebas$P11, 10)
+```
+
+## 2.12 Verificación de los registros correspondientes a horas de sueño por noche a la semana
+
+Al observar los registros de las horas promedio de sueño por noche a la semana indicadas por los estudiantes se observaron algunos valores extraños y otros inconsistentes. Los valores extraños correspondieron a las respuestas "5 a 6" y "6-7", mientras que los valores inconsistentes fueron 0, 25 y 70 horas. En relación con los valores extraños fueron registrados como los promedios de los valores indicados, mientras que los valores inconsistentes se registraron como valores faltantes.
+
+```{r revisar_horas_sueño, include=FALSE}
+# Cuenta las respuestas registradas en P9
+table(base_analisis_sin_pruebas$P9, useNA = "ifany")
+```
+```{r depurar_horas_sueño, include=FALSE}
+# Prepara P9 como texto y quita espacios al inicio y al final
+base_analisis_sin_pruebas$P9 <- trimws(
+  as.character(base_analisis_sin_pruebas$P9)
+)
+
+# Reemplaza los rangos por sus puntos medios
+base_analisis_sin_pruebas$P9[
+  base_analisis_sin_pruebas$P9 == "5 a 6"
+] <- "5.5"
+
+base_analisis_sin_pruebas$P9[
+  base_analisis_sin_pruebas$P9 == "6-7"
+] <- "6.5"
+
+# Convierte P9 a formato numerico
+base_analisis_sin_pruebas$P9 <- as.numeric(
+  base_analisis_sin_pruebas$P9
+)
+
+# Registra como faltantes los valores inconsistentes
+base_analisis_sin_pruebas$P9[
+  base_analisis_sin_pruebas$P9 %in% c(0, 25, 70)
+] <- NA
+
+# Comprueba los faltantes y la distribucion final
+sum(is.na(base_analisis_sin_pruebas$P9))
+table(base_analisis_sin_pruebas$P9, useNA = "ifany")
+```
+
+
+
+## Tabla resumen de las incidencias encontradas y de los resultados obtenidos
+
+| Problema identificado | Casos observados | Tratamiento aplicado | Registros retirados |
+|---|---:|---|---:|
+| Identificador único de envío repetido | 7 identificadores; 14 filas involucradas | Se comprobó que las demás respuestas al cuestionario se repetían y se eliminaron los registros duplicados. | 7 |
+| Respuestas incompletas en P5-P10 | 28 registros | Se consideraron respuestas incompletas y se retiraron del data frame de trabajo. | 28 |
+| Falta de código de salón en registros de prueba | 2 registros | Se identificó que correspondían a pruebas de registro, tal como se indicaba en sus respuestas en P11, por lo que se eliminaron. | 2 |
+| Falta de respuesta sobre el distrito | 13 registros | Se conservaron las observaciones, ya que contaban con respuestas en las demás preguntas relevantes del cuestionario. | 0 |
+| Menores de edad | 9 registros | Se eliminaron del data frame de trabajo por no cumplir con la mayoría de edad definida para la población objetivo. | 9 |
+| Códigos de salón correspondientes a pruebas | 6 registros: “PRUEBA”, “prueba_01” y “test” | Se eliminaron solo esos registros. | 6 |
+| Códigos de salón no coincidentes con los definidos para el estudio | 7 registros | Se mantuvieron en la base para su revisión. | 0 |
+| Variabilidad en la digitación del distrito de residencia | Respuestas con nombres, abreviaturas y formatos distintos | Se unificaron los nombres, se retiraron las tildes, se agruparon los distritos fuera de Lima Metropolitana y se estandarizaron las categorías en mayúsculas. | 0 |
+| Valores inconsistentes en edad | 190 y 210 | Se registraron como valores faltantes. | 0 |
+| Valores inconsistentes y atípicos en ciclo de estudios | 0, 14 y 21 | Se registraron como valores faltantes. | 0 |
+| Valores inconsistentes y atípicos en horas trabajadas | 0 y 168 horas; un caso de 120 horas | 0 y 168 se registraron como faltantes; 120 se conservó como valor atípico. | 0 |
+| Formato de las respuestas abiertas P8_otro y P11 | Respuestas con espacios sobrantes, puntos finales o formatos distintos | Se convirtieron a mayúsculas, se ordenaron los espacios y se eliminaron los puntos finales. En P11 se conservaron “:/”, “OK” y “XD”. | 0 |
+| Valores inconsistentes en horas de sueño | 0, 25 y 70; respuestas “5 a 6” y “6-7” | 0, 25 y 70 se registraron como faltantes; los intervalos se reemplazaron por sus puntos medios. | 0 |
+
+En resumen, en un primer momento la base de datos terminó con 1362 filas de los 1369 registros iniciales, dado que se eliminaron los registros duplicados. Posteriormente, se eliminaron 28 registros adicionales, ya que eran respuestas incompletas en las preguntas centrales del cuestionario. El nuevo total ascendió a 1334 registros. Luego, se eliminaron dos registros sin código de salón, ya que correspondían a pruebas, por lo que quedaron 1332 observaciones. Tras retirar los nueve registros de menores de edad, la base quedó conformada por 1.323 observaciones. Finalmente, se eliminaron los seis registros de prueba identificados mediante sus códigos de salón, por lo que la base final ascendió a 1317 observaciones.
+
+# 3. Resultados de campo
+
+En este capítulo se utilizó la tabla de la hoja "Campo 2026", correspondiente al archivo "Información del estudio.xlsx", a fin de conocer el número de estudiantes matriculados por cada salón de clase que formó parte del estudio. Asimismo, se utilizaron los registros de la "Base de Análisis.xlsx" para el cálculo de la efectividad del trabajo de campo y el cumplimiento de las metas por facultad y sexo.
+
+```{r revisar_campo_2026, include=FALSE}
+# Revisa los nombres de las columnas
+names(campo_2026)
+
+# Revisa la estructura y algunos registros
+head(campo_2026)
+```
+## 3.1 Análisis de la efectividad del trabajo de campo
+
+Para calcular la efectividad del trabajo de campo por facultad se utilizó la siguiente fórmula:
+
+$$
+\text{Efectividad} =
+\left(
+\frac{
+\substack{\text{Respuestas válidas}\\\text{en salones aplicados}}
+}{
+\substack{\text{Estudiantes matriculados}\\\text{en esos salones}}
+}
+\right)\times 100
+$$  
+
+A continuación se presenta la efectividad del trabajo correspondiente a las facultades parte del estudio, ordenados de mayor a menor efectividad.
+
+```{r calcular_efectividad_facultad, echo=FALSE}
+# Suma los estudiantes matriculados en los salones aplicados por facultad
+matriculados_facultad <- aggregate(
+  matriculados ~ facultad,
+  data = campo_2026,
+  FUN = sum
+)
+
+# Selecciona los códigos de salón no vacíos de la base depurada
+respuestas_con_salon <- base_analisis_sin_pruebas[
+  !is.na(base_analisis_sin_pruebas$codigo_salon) &
+    trimws(base_analisis_sin_pruebas$codigo_salon) != "",
+  "codigo_salon",
+  drop = FALSE
+]
+
+# Vincula las respuestas con los salones aplicados
+respuestas_vinculadas <- merge(
+  respuestas_con_salon,
+  campo_2026[, c("codigo_salon", "facultad")],
+  by = "codigo_salon"
+)
+
+# Cuenta las encuestas válidas vinculadas a salones por facultad
+encuestas_facultad <- aggregate(
+  codigo_salon ~ facultad,
+  data = respuestas_vinculadas,
+  FUN = length
+)
+
+# Asigna un nombre a la columna del conteo
+names(encuestas_facultad)[2] <- "encuestas_validas"
+
+# Une matriculados y encuestas válidas por facultad
+efectividad_facultad <- merge(
+  matriculados_facultad,
+  encuestas_facultad,
+  by = "facultad",
+  all.x = TRUE
+)
+
+# Calcula el porcentaje de efectividad
+efectividad_facultad$efectividad_porcentaje <-
+  efectividad_facultad$encuestas_validas /
+  efectividad_facultad$matriculados * 100
+
+# Ordena la tabla de mayor a menor efectividad
+efectividad_facultad <- efectividad_facultad[
+  order(-efectividad_facultad$efectividad_porcentaje),
+]
+
+# Muestra los resultados redondeados a dos decimales
+efectividad_facultad$efectividad_porcentaje <- round(
+  efectividad_facultad$efectividad_porcentaje,
+  2
+)
+
+# Dar formato de tabla
+
+tabla_efectividad <- efectividad_facultad
+
+tabla_efectividad$efectividad_porcentaje <- paste0(
+  formatC(
+    tabla_efectividad$efectividad_porcentaje,
+    format = "f",
+    digits = 2,
+    decimal.mark = ","
+  ),
+  "%"
+)
+
+knitr::kable(
+  tabla_efectividad,
+  col.names = c(
+    "Facultad",
+    "Estudiantes matriculados",
+    "Encuestas válidas",
+    "Efectividad"
+  ),
+  digits = 0,
+  row.names = FALSE,
+  caption = "Efectividad del trabajo de campo por facultad"
+)
+```
+
+```{r, include=FALSE}
+sum(efectividad_facultad$encuestas_validas)
+sum(efectividad_facultad$matriculados)
+```
+```{r revisar_respuestas_no_vinculadas, include=FALSE}
+# Prepara los códigos de salón para compararlos
+codigo_base <- trimws(
+  as.character(base_analisis_sin_pruebas$codigo_salon)
+)
+
+codigo_campo <- trimws(
+  as.character(campo_2026$codigo_salon)
+)
+
+# Identifica respuestas sin código o con un código no listado en Campo 2026
+respuestas_no_vinculadas <- base_analisis_sin_pruebas[
+  is.na(codigo_base) |
+    codigo_base == "" |
+    !codigo_base %in% codigo_campo,
+  c("id_registro", "codigo_salon"),
+  drop = FALSE
+]
+
+# Comprueba cuántos registros son y qué códigos presentan
+nrow(respuestas_no_vinculadas)
+sort(
+  table(respuestas_no_vinculadas$codigo_salon, useNA = "ifany"),
+  decreasing = TRUE
+)
+```
+
+El total de estudiantes matriculados asciende a 2824 y el total de encuestas válidas vinculadas a un salón de la hoja “Campo 2026” es de 1310. Si bien, tras el procesamiento de la Base de Análisis, el total de registros fue de 1317, la diferencia se debe a 7 registros con códigos no coincidentes con los señalados en la tabla “Campo 2026”. Los códigos de los registros no coincidentes son los siguientes: 1LAS56-0301, 1QUI77-0214, ANT108-0302, CON247-0206, DER257-0410, FIN109-0409 y GES160-0111. Por lo tanto, estos registros no formaron parte del cálculo de la efectividad por salón.
+
+Por otro lado, se puede señalar que la facultad con mayor porcentaje de efectividad fue Gestión y Negocios, con 54,60%, mientras que la de menor efectividad fue Letras y Humanidades, con 34,25%. Esta diferencia de rendimiento representa 20,35 puntos porcentuales entre ambas facultades. La efectividad general, correspondiente al total de estudiantes matriculados y encuestas válidas vinculadas, fue de 46,39%.
+
+## 3.2 Evaluación de los cumplimientos de las metas por facultad y sexo
+
+Para la evaluación de las metas por facultad y sexo se tomaron inicialmente 1310 encuestas de la Base de Análisis vinculadas con un código de salón de clase de la hoja "Campo 2026". Es preciso señalar que de las 1310 observaciones, 680 indicaron ser hombres, 619 indicaron ser mujeres y 11 indicaron que preferían no decirlo. En consecuencia, para la evaluación final de las metas se trabajó sobre un total de 1299 registros. En la siguiente tabla se presenta un resumen del cumplimiento de las metas por facultad y sexo correspondiente a la aplicación de la encuesta.
+
+```{r, include=FALSE}
+# Vincula las encuestas con la facultad del salón
+encuestas_vinculadas <- merge(
+  base_analisis_sin_pruebas,
+  campo_2026[, c("codigo_salon", "facultad")],
+  by = "codigo_salon"
+)
+
+# Verifica cuántas encuestas quedaron vinculadas
+nrow(encuestas_vinculadas)
+
+```
+```{r, include=FALSE}
+# Recodifica P2 según las categorías de sexo del cuestionario
+encuestas_vinculadas$sexo <- as.character(encuestas_vinculadas$P2)
+
+encuestas_vinculadas$sexo[encuestas_vinculadas$sexo == "1"] <- "Hombre"
+encuestas_vinculadas$sexo[encuestas_vinculadas$sexo == "2"] <- "Mujer"
+encuestas_vinculadas$sexo[encuestas_vinculadas$sexo == "3"] <- "Prefiero no decirlo"
+
+# Cuenta las encuestas por facultad y sexo
+conteo_encuestas <- aggregate(
+  codigo_salon ~ facultad + sexo,
+  data = encuestas_vinculadas,
+  FUN = length
+)
+
+sum(conteo_encuestas$codigo_salon)
+```
+```{r, include=FALSE}
+# Cambia el nombre de la columna con los conteos
+names(conteo_encuestas)[3] <- "encuestas_obtenidas"
+
+# Une los conteos con las metas por facultad y sexo
+cumplimiento_metas <- merge(
+  metas,
+  conteo_encuestas,
+  by = c("facultad", "sexo"),
+  all.x = TRUE
+)
+cumplimiento_metas
+```
+```{r, echo=FALSE}
+# Calcula el porcentaje de cumplimiento
+cumplimiento_metas$porcentaje_cumplimiento <- round(
+  cumplimiento_metas$encuestas_obtenidas /
+    cumplimiento_metas$meta * 100,
+  1
+)
+
+# Calcula cuántas encuestas faltaron o excedieron la meta
+cumplimiento_metas$diferencia <-
+  cumplimiento_metas$encuestas_obtenidas - cumplimiento_metas$meta
+
+# Indica si se alcanzó la meta
+cumplimiento_metas$meta_alcanzada <- ifelse(
+  cumplimiento_metas$encuestas_obtenidas >= cumplimiento_metas$meta,
+  "Sí",
+  "No"
+)
+
+tabla_cumplimiento_metas <- cumplimiento_metas
+
+tabla_cumplimiento_metas$porcentaje_cumplimiento <- paste0(
+  formatC(
+    tabla_cumplimiento_metas$porcentaje_cumplimiento,
+    format = "f",
+    digits = 1,
+    decimal.mark = ","
+  ),
+  "%"
+)
+
+knitr::kable(
+  tabla_cumplimiento_metas,
+  col.names = c(
+    "Facultad",
+    "Sexo",
+    "Meta planificada",
+    "Encuestas obtenidas",
+    "Cumplimiento",
+    "Diferencia frente a la meta",
+    "Meta alcanzada"
+  ),
+  digits = 0,
+  row.names = FALSE,
+  caption = "Cumplimiento de las metas de encuesta por facultad y sexo"
+)
+```
+```{r, include=FALSE}
+sexo_vinculado <- as.character(encuestas_vinculadas$P2)
+
+sexo_vinculado[sexo_vinculado == "1"] <- "Hombre"
+sexo_vinculado[sexo_vinculado == "2"] <- "Mujer"
+sexo_vinculado[sexo_vinculado == "3"] <- "Prefiero no decirlo"
+
+table(sexo_vinculado, useNA = "ifany")
+sum(!is.na(sexo_vinculado))
+```
+
+```{r, include=FALSE}
+# Suma las metas y las encuestas obtenidas por facultad
+cumplimiento_facultad <- aggregate(
+  cbind(meta, encuestas_obtenidas) ~ facultad,
+  data = cumplimiento_metas,
+  FUN = sum
+)
+
+# Calcula el porcentaje de cumplimiento y la diferencia frente a la meta
+cumplimiento_facultad$porcentaje_cumplimiento <- round(
+  cumplimiento_facultad$encuestas_obtenidas /
+    cumplimiento_facultad$meta * 100,
+  1
+)
+
+cumplimiento_facultad$diferencia <-
+  cumplimiento_facultad$encuestas_obtenidas -
+  cumplimiento_facultad$meta
+
+# Indica si se alcanzó la meta total de cada facultad
+cumplimiento_facultad$meta_alcanzada <- ifelse(
+  cumplimiento_facultad$encuestas_obtenidas >= cumplimiento_facultad$meta,
+  "Sí",
+  "No"
+)
+
+# Muestra la comparación por facultad
+
+cumplimiento_facultad
+```
+
+La meta total de encuestas fue de 1231, incluidas ahí las seis facultades y ambos sexos. En ese sentido, de modo general se puede indicar que con los 1299 registros finales se cumplió con la meta de encuestas planificadas. No obstante, al revisar el detallado por facultad y sexo se observan dos grupos que no alcanzaron la meta planificada. Estos grupos corresponden a mujeres en Ciencia e Ingeniería, con un total de tres encuestas faltantes, y hombres en Letras y Humanidades, con un total de cinco encuestas faltantes. Aunque es preciso señalar que en el acumulado de hombres y mujeres por facultad se cumplen todas las metas de encuestas planificadas.
+
+A modo de conclusión, se puede señalar que se cumplió la meta total y la meta agregada de encuestas planificadas. Se registró una ligera brecha de encuestas por cumplir en dos grupos específicos de facultad y sexo, aunque esto no impidió cumplir con las metas agregadas por facultad.
+
+# 4. Informe de resultados
+
+En este capítulo se presentan los principales resultados del estudio. Primero, se presenta el objetivo del estudio y se detalla una ficha técnica que contiene la determinación del tamaño de la muestra, el método de recolección, el tamaño de muestra recolectada, los tipos de encuestados, los tipos de respuesta y el periodo de aplicación. Seguidamente, se presentan los resultados del estudio, así como otros hallazgos relevantes para la universidad.
+
+## 4.1 Objetivo del estudio
+
+El objetivo del presente estudio fue medir la satisfacción de los estudiantes de pregrado de seis facultades de una universidad en relación con su experiencia universitaria y algunos servicios de la universidad, así como el estrés académico y su intención de abandonar los estudios.
+
+## 4.2 Metodología del estudio
+
+El estudio utilizó un enfoque cuantitativo y un diseño transversal. La población objetivo del estudio estuvo conformada por 18600 estudiantes de pregrado de 18 años a más de las seis facultades de la universidad. Para la determinación del tamaño de la muestra se utilizó la fórmula para  poblaciones finitas y se consideró un efecto de diseño asociado a la selección de los salones de clase. Para el cálculo del tamaño de la muestra se utilizó un nivel de confianza al 95 %, un margen de error del 3,5 %, una proporción esperada de 30 % y un efecto de diseño de 2. La meta de la muestra se definió en 1231 encuestas.
+
+    Fórmula para calcular la muestra en una población finita:
+$$
+n = \frac{N Z^2 p q \cdot DEFF}
+{e^2(N-1) + Z^2 p q \cdot DEFF}
+$$
+Donde:  
+$n$ = Tamaño de la muestra,  
+$N$ = Tamaño de la población,  
+$z$ = Nivel de confianza,  
+$p$ = Proporción estimada,  
+$q$ = Proporción complementaria,  
+$e$ = Margen de error,  
+$deff$ = Efecto de diseño.
+    
+    Tamaño de la muestra planificada por facultad y, dentro de cada una, por sexo:
+```{r tabla_distribucion_muestra, echo=FALSE}
+# Selecciona las columnas que se mostrarán
+tabla_distribucion <- cuotas_calculadas[
+  , c("facultad", "sexo", "matriculados", "meta")
+]
+
+# Agrega una fila con los totales
+fila_total <- data.frame(
+  facultad = "Total",
+  sexo = "",
+  matriculados = sum(cuotas_calculadas$matriculados),
+  meta = sum(cuotas_calculadas$meta)
+)
+
+tabla_distribucion <- rbind(tabla_distribucion, fila_total)
+
+# Presenta la tabla en el informe
+knitr::kable(
+  tabla_distribucion,
+  caption = "Distribución de la muestra planificada por facultad y sexo",
+  col.names = c(
+    "Facultad",
+    "Sexo",
+    "Estudiantes matriculados",
+    "Meta planificada"
+  ),
+  align = c("l", "l", "r", "r")
+)
+```
+
+
+
+Para la selección de la muestra se seleccionaron alteatorioamente salones de clase en cada una de las seis facultades. En cada salón de clase se invitó a todos los estudiantes presentes a participar de la encuesta.
+
+La recolección de las muestras se realizó entre el 7 y el 25 de septiembre de 2026, mediante un dispositivo celular y un código QR que identificaba a cada salón de clase. El tamaño de la muestra recolectada tras su procesamiento fue de 1317 encuestas válidas.
+
+```{r tabla_muestra_recolectada, echo=FALSE}
+tabla_muestra <- conteo_encuestas[, 1:3]
+names(tabla_muestra) <- c("Facultad", "Sexo", "Muestra recolectada")
+
+tabla_muestra$Facultad <- as.character(tabla_muestra$Facultad)
+tabla_muestra$Sexo <- as.character(tabla_muestra$Sexo)
+
+# Excluye "Prefiero no decirlo" (o el código 3, si aparece así)
+tabla_muestra <- tabla_muestra[
+  !(tabla_muestra$Sexo %in% c("Prefiero no decirlo", "3")),
+]
+
+fila_total <- data.frame("Total", "", sum(tabla_muestra[[3]]))
+names(fila_total) <- names(tabla_muestra)
+
+tabla_muestra <- rbind(tabla_muestra, fila_total)
+
+knitr::kable(tabla_muestra)
+```
+  *Nota: Se muestran 1299 registros, dado que se excluyeron 7 registros con códigos de* 
+  *salón no coincidentes con los definidos en la hoja “Campo 2026”.Asimismo, no se* 
+  *incluyen los 11 registros que indicaron que preferían no decir su sexo.*
+
+El tipo de encuestado corresponde a los estudiantes de pregrado de 18 años a más de las seis facultades de la universidad. Los tipos de respuestas fueron de respuesta única, es decir, una respuesta por encuestado. En los casos en los que la pregunta estuvo orientada a obtener respuestas múltiples se permitió para cada una de las preguntas correspondientes.
+
+## 4.3 Análisis de Resultados
+
+  a) ¿Cómo evalúan los estudiantes los servicios de la universidad?
+  
+En la evaluación de los servicios brindados por la universidad se consideraron la Biblioteca, el Comedor, el Servicio psicopedagógico, la Tutoría académica y la Plataforma virtual de cursos. En la encuesta se utilizó una escala Likert que valoraba los servicios desde «Muy insatisfecho(a)» hasta «Muy satisfecho(a)». También se incluyó la opción «No he usado este servicio».
+
+```{r revisar_evaluacion_servicios, echo=FALSE, message=FALSE}
+
+library(dplyr)
+
+servicios <- c("P6_1", "P6_2", "P6_3", "P6_4", "P6_5")
+
+nombres_servicios <- c(
+  "Biblioteca",
+  "Comedor",
+  "Servicio psicopedagógico",
+  "Tutoría académica",
+  "Plataforma virtual de cursos"
+)
+
+# Reúne las respuestas de los cinco servicios en una sola base
+datos_servicios <- bind_rows(
+  lapply(seq_along(servicios), function(i) {
+    codigo <- as.numeric(as.character(
+      base_analisis_sin_pruebas[[servicios[i]]]
+    ))
+
+    data.frame(
+      Servicio = nombres_servicios[i],
+      Respuesta = case_when(
+        is.na(codigo) ~ "Sin respuesta",
+        codigo == 1 ~ "Muy insatisfecho(a)",
+        codigo == 2 ~ "Insatisfecho(a)",
+        codigo == 3 ~ "Ni satisfecho(a) ni insatisfecho(a)",
+        codigo == 4 ~ "Satisfecho(a)",
+        codigo == 5 ~ "Muy satisfecho(a)",
+        codigo == 6 ~ "No he usado este servicio",
+        TRUE ~ "Otro código"
+      )
+    )
+  })
+)
+
+# Calcula la frecuencia y el porcentaje dentro de cada servicio
+tabla_servicios <- datos_servicios %>%
+  count(Servicio, Respuesta, name = "Frecuencia") %>%
+  group_by(Servicio) %>%
+  mutate(
+    Porcentaje = Frecuencia / sum(Frecuencia) * 100
+  ) %>%
+  ungroup() %>%
+  arrange(
+    match(Servicio, nombres_servicios),
+    factor(
+      Respuesta,
+      levels = c(
+        "Muy insatisfecho(a)",
+        "Insatisfecho(a)",
+        "Ni satisfecho(a) ni insatisfecho(a)",
+        "Satisfecho(a)",
+        "Muy satisfecho(a)",
+        "No he usado este servicio",
+        "Sin respuesta",
+        "Otro código"
+      )
+    )
+  )
+
+knitr::kable(
+  tabla_servicios,
+  col.names = c("Servicio", "Respuesta", "Frecuencia", "Porcentaje (%)"),
+  digits = 1,
+  caption = "Evaluación de los servicios de la universidad"
+)
+
+```
+Entre las respuestas obtenidas, los estudiantes valoraron más favorablemente el servicio de Biblioteca, donde el 71% indicó estar satisfecho o muy satisfecho. Asimismo, es importante señalar que el 17% de los estudiantes indicó que nunca había usado este servicio. Por otro lado, el servicio de Comedor obtuvo la valoración menos favorable, ya que el 50% de sus usuarios manifestó insatisfacción. Además, solo el 22% expresó satisfacción con el servicio y el 40% señaló que nunca lo había utilizado.
+En relación con el Servicio psicopedagógico, el 60% de sus usuarios indicó encontrarse satisfecho. Sin embargo, es preciso señalar que el 67% de los encuestados indicó que nunca había utilizado este servicio. Esto significa que solo el 33% de los estudiantes lo había utilizado al menos en una ocasión.
+La Tutoría académica también es un servicio de uso limitado, puesto que el 57% de los estudiantes señaló que nunca había recurrido a este servicio. Entre sus usuarios, el 45% expresó satisfacción, mientras que el 25% manifestó insatisfacción.
+La Plataforma virtual de cursos representa el servicio con más usuarios, ya que solo el 2% de los encuestados indicó no haberla usado nunca. Entre sus usuarios, el 39% expresó satisfacción y el 28% indicó insatisfacción.
+
+```{r grafico_evaluacion_servicios, fig.width=10, fig.height=6, echo=FALSE}
+library(ggplot2)
+
+servicios <- c("P6_1", "P6_2", "P6_3", "P6_4", "P6_5")
+
+nombres_servicios <- c(
+  "Biblioteca",
+  "Comedor",
+  "Servicio psicopedagógico",
+  "Tutoría académica",
+  "Plataforma virtual de cursos"
+)
+
+categorias <- c(
+  "Muy insatisfecho(a)",
+  "Insatisfecho(a)",
+  "Ni satisfecho(a) ni insatisfecho(a)",
+  "Satisfecho(a)",
+  "Muy satisfecho(a)"
+)
+
+colores <- c(
+  "#C9534F", "#F2A477", "#FFD966", "#A8D08D", "#70AD47"
+)
+
+datos_grafico <- data.frame()
+resumen_grafico <- data.frame()
+
+for (i in seq_along(servicios)) {
+  respuestas <- as.numeric(as.character(
+    base_analisis_sin_pruebas[[servicios[i]]]
+  ))
+
+  frecuencias <- sapply(
+    1:6,
+    function(valor) sum(respuestas == valor, na.rm = TRUE)
+  )
+
+  n_usuarios <- sum(frecuencias[1:5])
+
+  datos_grafico <- rbind(
+    datos_grafico,
+    data.frame(
+      Servicio = nombres_servicios[i],
+      Respuesta = categorias,
+      Porcentaje = frecuencias[1:5] / n_usuarios * 100
+    )
+  )
+
+  resumen_grafico <- rbind(
+    resumen_grafico,
+    data.frame(
+      Servicio = nombres_servicios[i],
+      Satisfechos = sum(frecuencias[4:5]) / n_usuarios * 100,
+      No_uso = frecuencias[6] / sum(!is.na(respuestas)) * 100
+    )
+  )
+}
+
+datos_grafico$Servicio <- factor(
+  datos_grafico$Servicio,
+  levels = rev(nombres_servicios)
+)
+datos_grafico$Respuesta <- factor(
+  datos_grafico$Respuesta,
+  levels = categorias
+)
+resumen_grafico$Servicio <- factor(
+  resumen_grafico$Servicio,
+  levels = rev(nombres_servicios)
+)
+
+ggplot(datos_grafico, aes(x = Porcentaje, y = Servicio, fill = Respuesta)) +
+  geom_col(width = 0.65) +
+  geom_text(
+    aes(label = ifelse(Porcentaje >= 5, paste0(round(Porcentaje), "%"), "")),
+    position = position_stack(vjust = 0.5),
+    size = 3
+  ) +
+  geom_text(
+    data = resumen_grafico,
+    aes(
+      x = 104,
+      y = Servicio,
+      label = paste0(
+        "Satisfechos: ", round(Satisfechos), "%",
+        "\nNo uso: ", round(No_uso), "%"
+      )
+    ),
+    inherit.aes = FALSE,
+    hjust = 0,
+    size = 3.2
+  ) +
+  scale_fill_manual(values = colores, breaks = categorias) +
+  scale_x_continuous(
+    breaks = seq(0, 100, 20),
+    labels = function(x) paste0(x, "%"),
+    limits = c(0, 140),
+    expand = c(0, 0)
+  ) +
+  labs(
+    title = "Satisfacción con los servicios de la universidad",
+    x = NULL,
+    y = NULL,
+    fill = NULL
+  ) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(face = "bold", hjust = 0.5),
+    legend.position = "bottom",
+    legend.justification = "center",
+    legend.box.just = "center",
+    panel.grid.major.y = element_blank(),
+    panel.grid.minor = element_blank()
+  )
+
+```
+Cabe señalar que los porcentajes de las categorías de satisfacción presentados en el gráfico y la tabla difieren dado que el cálculo para el gráfico utiliza únicamente las encuestas de quienes habían señalado haber utilizado cada servicio al menos una vez. En cambio, los porcentajes de «No he usado este servicio» se calculan sobre el total de encuestados.
+
+  b) ¿Cómo varió la satisfacción general con la experiencia universitaria entre 2024 y 2026?
+  
+Al comparar la satisfacción general con la experiencia universitaria entre 2024 y 2026, se observa que la suma de estudiantes satisfechos y muy satisfechos pasó de 44,2% en 2024 a 41,2% en 2026, lo que representa una disminución de 3 puntos porcentuales. Asimismo, el porcentaje de estudiantes insatisfechos y muy insatisfechos aumentó de 25,9% a 27,4%, es decir, tuvo un aumento de 1,5 puntos porcentuales.
+```{r datos_comparacion_general, echo=FALSE, message=FALSE}
+
+library(dplyr)
+library(ggplot2)
+library(readxl)
+library(tidyr)
+
+# Importa la base de 2024
+base_2024 <- read_xlsx("Encuesta 2024 - base.xlsx", sheet = "Base")
+
+# Define las categorías en el mismo orden para ambos años
+categorias <- c(
+  "Muy satisfecho(a)",
+  "Satisfecho(a)",
+  "Ni satisfecho(a) ni insatisfecho(a)",
+  "Insatisfecho(a)",
+  "Muy insatisfecho(a)",
+  "No responde"
+)
+
+# Reúne y armoniza las respuestas de satisfacción general
+respuestas_general <- bind_rows(
+  data.frame(
+    Anio = "2024",
+    codigo = as.numeric(as.character(base_2024$satisf_gral))
+  ),
+  data.frame(
+    Anio = "2026",
+    codigo = as.numeric(as.character(base_analisis_sin_pruebas$P5))
+  )
+) %>%
+  mutate(
+    Categoria = case_when(
+      Anio == "2024" & codigo == 1  ~ "Muy satisfecho(a)",
+      Anio == "2024" & codigo == 2  ~ "Satisfecho(a)",
+      Anio == "2024" & codigo == 3  ~ "Ni satisfecho(a) ni insatisfecho(a)",
+      Anio == "2024" & codigo == 4  ~ "Insatisfecho(a)",
+      Anio == "2024" & codigo == 5  ~ "Muy insatisfecho(a)",
+      Anio == "2024" & codigo == 9  ~ "No responde",
+
+      Anio == "2026" & codigo == 5  ~ "Muy satisfecho(a)",
+      Anio == "2026" & codigo == 4  ~ "Satisfecho(a)",
+      Anio == "2026" & codigo == 3  ~ "Ni satisfecho(a) ni insatisfecho(a)",
+      Anio == "2026" & codigo == 2  ~ "Insatisfecho(a)",
+      Anio == "2026" & codigo == 1  ~ "Muy insatisfecho(a)",
+      Anio == "2026" & codigo == 99 ~ "No responde",
+
+      TRUE ~ NA_character_
+    )
+  ) %>%
+  filter(!is.na(Categoria)) %>%
+  count(Anio, Categoria, name = "frecuencia") %>%
+  group_by(Anio) %>%
+  mutate(Porcentaje = frecuencia / sum(frecuencia) * 100) %>%
+  ungroup()
+
+# Organiza los porcentajes en una tabla comparativa
+tabla_general <- respuestas_general %>%
+  select(Categoria, Anio, Porcentaje) %>%
+  pivot_wider(
+    names_from = Anio,
+    values_from = Porcentaje,
+    names_prefix = "Porcentaje_"
+  ) %>%
+  arrange(match(Categoria, categorias))
+
+knitr::kable(
+  tabla_general,
+  col.names = c("Categoría", "2024 (%)", "2026 (%)"),
+  digits = 1,
+  caption = "Distribución de la satisfacción general por año"
+)
+```
+Otra variación importante se observa en la categoría «Ni satisfecho(a) ni insatisfecho(a)», que pasó de 28,3% a 30,1% en 2026. Si bien en ambos años la respuesta más frecuente fue «Satisfecho(a)», su porcentaje disminuyó en 2,2 puntos porcentuales. A modo de conclusión, se puede señalar que entre 2024 y 2026 se presentó una ligera reducción en la proporción de estudiantes que indicaron una satisfacción favorable.
+```{r grafico_comparacion_general, fig.width=10, fig.height=6, echo=FALSE}
+
+ggplot(
+  respuestas_general,
+  aes(x = Porcentaje, y = Categoria, fill = Anio)
+) +
+  geom_col(
+    position = position_dodge(width = 0.8),
+    width = 0.7
+  ) +
+  geom_text(
+    aes(label = paste0(round(Porcentaje, 1), "%")),
+    position = position_dodge(width = 0.8),
+    hjust = -0.15,
+    size = 3
+  ) +
+  scale_fill_manual(
+    values = c("2024" = "#9FC5E8", "2026" = "#102C68")
+  ) +
+  scale_y_discrete(limits = rev(categorias)) +
+  scale_x_continuous(
+    labels = function(x) paste0(x, "%"),
+    expand = expansion(mult = c(0, 0.15))
+  ) +
+  labs(
+    title = "Satisfacción general con la experiencia universitaria",
+    x = "Porcentaje de respuestas",
+    y = NULL,
+    fill = NULL
+  ) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(face = "bold", hjust = 0.5),
+    legend.position = "bottom",
+    legend.justification = "center",
+    panel.grid.major.y = element_blank(),
+    panel.grid.minor = element_blank()
+  )
+
+```
+  c) ¿Cómo varió la satisfacción con el comedor entre 2024 y 2026?
+  
+En relación con la satisfacción de los estudiantes con el servicio del comedor universitario entre 2024 y 2026, hubo una disminución de 5,9 puntos porcentuales entre quienes indicaron estar satisfechos o muy satisfechos. En ese sentido, la satisfacción se redujo de 27,7% a 21,8%. Asimismo, aumentó la proporción de estudiantes que indicaron estar insatisfechos o muy insatisfechos, el cual pasó de 40,9% en 2024 a 49,8% en 2026. Esto representa un aumento de 8,9 puntos porcentuales.
+
+```{r datos_comparacion_comedor, echo=FALSE}
+
+library(dplyr)
+library(ggplot2)
+library(readxl)
+library(tidyr)
+
+# Importa la base de 2024
+base_2024 <- read_xlsx("Encuesta 2024 - base.xlsx", sheet = "Base")
+
+# Define las categorías en el mismo orden para ambos años
+categorias <- c(
+  "Muy satisfecho(a)",
+  "Satisfecho(a)",
+  "Ni satisfecho(a) ni insatisfecho(a)",
+  "Insatisfecho(a)",
+  "Muy insatisfecho(a)"
+)
+
+# Reúne y armoniza las respuestas sobre el comedor
+datos_comedor <- bind_rows(
+  data.frame(
+    Anio = "2024",
+    codigo = as.numeric(as.character(base_2024$serv_comedor))
+  ),
+  data.frame(
+    Anio = "2026",
+    codigo = as.numeric(as.character(base_analisis_sin_pruebas$P6_2))
+  )
+) %>%
+  mutate(
+    Categoria = case_when(
+      Anio == "2024" & codigo == 1 ~ "Muy satisfecho(a)",
+      Anio == "2024" & codigo == 2 ~ "Satisfecho(a)",
+      Anio == "2024" & codigo == 3 ~ "Ni satisfecho(a) ni insatisfecho(a)",
+      Anio == "2024" & codigo == 4 ~ "Insatisfecho(a)",
+      Anio == "2024" & codigo == 5 ~ "Muy insatisfecho(a)",
+
+      Anio == "2026" & codigo == 5 ~ "Muy satisfecho(a)",
+      Anio == "2026" & codigo == 4 ~ "Satisfecho(a)",
+      Anio == "2026" & codigo == 3 ~ "Ni satisfecho(a) ni insatisfecho(a)",
+      Anio == "2026" & codigo == 2 ~ "Insatisfecho(a)",
+      Anio == "2026" & codigo == 1 ~ "Muy insatisfecho(a)",
+
+      TRUE ~ NA_character_
+    )
+  )
+
+# Calcula la distribución porcentual entre quienes valoraron el servicio
+distribucion_comedor <- datos_comedor %>%
+  filter(!is.na(Categoria)) %>%
+  count(Anio, Categoria, name = "frecuencia") %>%
+  group_by(Anio) %>%
+  mutate(Porcentaje = frecuencia / sum(frecuencia) * 100) %>%
+  ungroup()
+
+# Organiza los porcentajes en una tabla comparativa
+tabla_comedor <- distribucion_comedor %>%
+  select(Categoria, Anio, Porcentaje) %>%
+  pivot_wider(
+    names_from = Anio,
+    values_from = Porcentaje,
+    names_prefix = "Porcentaje_"
+  ) %>%
+  arrange(match(Categoria, categorias))
+
+knitr::kable(
+  tabla_comedor,
+  col.names = c("Categoría", "2024 (%)", "2026 (%)"),
+  digits = 1,
+  caption = "Distribución de la satisfacción con el comedor por año"
+)
+
+# Cuenta aparte las respuestas especiales de cada año
+tabla_especiales_comedor <- datos_comedor %>%
+  group_by(Anio) %>%
+  summarise(
+    Respuesta_especial = if (first(Anio) == "2024") {
+      "No sabe / no opina"
+    } else {
+      "No he usado este servicio"
+    },
+    Frecuencia = if (first(Anio) == "2024") {
+      sum(codigo == 8, na.rm = TRUE)
+    } else {
+      sum(codigo == 6, na.rm = TRUE)
+    },
+    Total_respuestas = sum(!is.na(codigo)),
+    Porcentaje = Frecuencia / Total_respuestas * 100,
+    .groups = "drop"
+  ) %>%
+  select(Anio, Respuesta_especial, Frecuencia, Porcentaje)
+
+knitr::kable(
+  tabla_especiales_comedor,
+  col.names = c("Año", "Respuesta", "Frecuencia", "Porcentaje (%)"),
+  digits = 1,
+  caption = "Respuestas especiales sobre el comedor"
+)
+
+```
+
+En 2026 también se observa una disminución de las respuestas neutrales, ya que el porcentaje pasó de 31,4% a 28,2%. En general, se puede concluir que en 2026 aumentaron las valoraciones desfavorables y disminuyeron las favorables.
+
+Las opciones No sabe / no opina de 2024 y No he usado este servicio de 2026 se excluyeron de la comparación de las categorías de satisfacción, ya que ambas expresiones no indican necesariamente lo mismo, por lo que se consideró conveniente no compararlas directamente.
+
+```{r grafico_comparacion_comedor, fig.width=10, fig.height=6, echo=FALSE}
+
+ggplot(
+  distribucion_comedor,
+  aes(x = Porcentaje, y = Categoria, fill = Anio)
+) +
+  geom_col(
+    position = position_dodge(width = 0.8),
+    width = 0.7
+  ) +
+  geom_text(
+    aes(label = paste0(round(Porcentaje, 1), "%")),
+    position = position_dodge(width = 0.8),
+    hjust = -0.15,
+    size = 3
+  ) +
+  scale_fill_manual(
+    values = c("2024" = "#9FC5E8", "2026" = "#102C68")
+  ) +
+  scale_y_discrete(limits = rev(categorias)) +
+  scale_x_continuous(
+    labels = function(x) paste0(x, "%"),
+    expand = expansion(mult = c(0, 0.15))
+  ) +
+  labs(
+    title = "Satisfacción con el servicio del comedor",
+    x = "Porcentaje de respuestas",
+    y = NULL,
+    fill = NULL
+  ) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(face = "bold", hjust = 0.5),
+    legend.position = "bottom",
+    legend.justification = "center",
+    panel.grid.major.y = element_blank(),
+    panel.grid.minor = element_blank()
+  )
+
+```
+  d) ¿Qué características de los estudiantes se asocian con haber pensado seriamente en dejar la
+universidad?
+
+En relación con las características asociadas a haber pensado seriamente en dejar la universidad, se puede señalar que los estudiantes que trabajan presentan una diferencia importante respecto de quienes no trabajan. Ello debido a que el 23,2% de quienes trabajan respondió que sí ha pensado en dejar seriamente la universidad, frente al 9,8% de quienes no trabajan. Asimismo, se observa una mayor proporción de respuestas afirmativas entre quienes indicaron sentirse casi siempre estresados académicamente. En este grupo, el 25,8% respondió que sí había pensado seriamente en dejar la universidad, mientras que entre quienes nunca sentían estrés académico el porcentaje fue de 1,7%.
+
+```{r datos_asociacion_abandono, echo=FALSE}
+
+library(dplyr)
+
+# Prepara los datos de condición laboral
+datos_laboral <- base_analisis_sin_pruebas %>%
+  transmute(
+    Respuesta = as.numeric(as.character(P10)),
+    Caracteristica = "Condición laboral",
+    Grupo = case_when(
+      as.numeric(as.character(P4)) == 1 ~ "Trabaja",
+      as.numeric(as.character(P4)) == 2 ~ "No trabaja",
+      TRUE ~ NA_character_
+    )
+  ) %>%
+  filter(Respuesta %in% c(1, 2), !is.na(Grupo))
+
+# Prepara los datos de estrés académico
+datos_estres <- base_analisis_sin_pruebas %>%
+  transmute(
+    Respuesta = as.numeric(as.character(P10)),
+    Caracteristica = "Estrés académico",
+    Grupo = case_when(
+      as.numeric(as.character(P7)) == 4 ~ "Casi siempre",
+      as.numeric(as.character(P7)) == 3 ~ "Varias veces",
+      as.numeric(as.character(P7)) == 2 ~ "Pocas veces",
+      as.numeric(as.character(P7)) == 1 ~ "Nunca",
+      TRUE ~ NA_character_
+    )
+  ) %>%
+  filter(Respuesta %in% c(1, 2), !is.na(Grupo))
+
+# Prepara los datos de satisfacción general
+datos_satisfaccion <- base_analisis_sin_pruebas %>%
+  transmute(
+    Respuesta = as.numeric(as.character(P10)),
+    Caracteristica = "Satisfacción general",
+    Grupo = case_when(
+      as.numeric(as.character(P5)) == 1 ~ "Muy insatisfecho(a)",
+      as.numeric(as.character(P5)) == 2 ~ "Insatisfecho(a)",
+      as.numeric(as.character(P5)) == 3 ~
+        "Ni satisfecho(a) ni insatisfecho(a)",
+      as.numeric(as.character(P5)) == 4 ~ "Satisfecho(a)",
+      as.numeric(as.character(P5)) == 5 ~ "Muy satisfecho(a)",
+      TRUE ~ NA_character_
+    )
+  ) %>%
+  filter(Respuesta %in% c(1, 2), !is.na(Grupo))
+
+# Une las tres características
+datos_asociacion <- bind_rows(
+  datos_laboral,
+  datos_estres,
+  datos_satisfaccion
+)
+
+# Calcula el porcentaje que respondió "Sí" dentro de cada grupo
+resumen_asociacion <- datos_asociacion %>%
+  group_by(Caracteristica, Grupo) %>%
+  summarise(
+    Total_grupo = n(),
+    Respondio_si = sum(Respuesta == 1),
+    Porcentaje_si = Respondio_si / Total_grupo * 100,
+    .groups = "drop"
+  ) %>%
+  arrange(
+    match(
+      Caracteristica,
+      c("Condición laboral", "Estrés académico", "Satisfacción general")
+    ),
+    match(
+      Grupo,
+      c(
+        "Trabaja", "No trabaja",
+        "Casi siempre", "Varias veces", "Pocas veces", "Nunca",
+        "Muy insatisfecho(a)", "Insatisfecho(a)",
+        "Ni satisfecho(a) ni insatisfecho(a)",
+        "Satisfecho(a)", "Muy satisfecho(a)"
+      )
+    )
+  )
+
+# Presenta la tabla con los valores que se graficarán
+knitr::kable(
+  resumen_asociacion %>%
+    select(Caracteristica, Grupo, Respondio_si, Total_grupo, Porcentaje_si),
+  col.names = c(
+    "Característica",
+    "Grupo",
+    "Respondió sí",
+    "Total del grupo",
+    "Porcentaje (%)"
+  ),
+  digits = 1,
+  caption = "Estudiantes que pensaron seriamente en dejar la universidad, por característica y grupo"
+)
+
+```
+
+Otro aspecto a destacar se relaciona con la satisfacción general, ya que en el grupo de quienes indicaron estar muy insatisfechos, el 29,0% indicó que sí había pensado seriamente en dejar la universidad. En comparación con los que indicaron encontrarse muy satisfechos, donde solo el 8,9% de este grupo indicó en haberlo pensado seriamente. 
+
+```{r grafico_asociacion_abandono, fig.width=12, fig.height=7, echo=FALSE}
+
+library(ggplot2)
+
+# Combina el nombre del grupo y la característica para las etiquetas
+resumen_asociacion <- resumen_asociacion %>%
+  mutate(
+    Etiqueta = paste(Grupo, "·", Caracteristica),
+    Etiqueta = factor(
+      Etiqueta,
+      levels = rev(c(
+        "Trabaja · Condición laboral",
+        "No trabaja · Condición laboral",
+        "Casi siempre · Estrés académico",
+        "Varias veces · Estrés académico",
+        "Pocas veces · Estrés académico",
+        "Nunca · Estrés académico",
+        "Muy insatisfecho(a) · Satisfacción general",
+        "Insatisfecho(a) · Satisfacción general",
+        "Ni satisfecho(a) ni insatisfecho(a) · Satisfacción general",
+        "Satisfecho(a) · Satisfacción general",
+        "Muy satisfecho(a) · Satisfacción general"
+      ))
+    )
+  )
+
+ggplot(
+  resumen_asociacion,
+  aes(x = Porcentaje_si, y = Etiqueta, fill = Caracteristica)
+) +
+  geom_col(width = 0.65) +
+  geom_text(
+    aes(
+      label = paste0(
+        round(Porcentaje_si, 1),
+        "% (n = ",
+        Total_grupo,
+        ")"
+      )
+    ),
+    hjust = -0.08,
+    size = 3.2
+  ) +
+  scale_fill_manual(
+    values = c(
+      "Condición laboral" = "#102C68",
+      "Estrés académico" = "#397F9E",
+      "Satisfacción general" = "#6A8F61"
+    )
+  ) +
+  scale_x_continuous(
+    labels = function(x) paste0(x, "%"),
+    expand = expansion(mult = c(0, 0.25))
+  ) +
+  labs(
+    title = "Pensó seriamente en dejar la universidad, según grupo",
+    x = "Porcentaje que respondió “Sí”",
+    y = NULL,
+    fill = "Característica"
+  ) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(face = "bold", hjust = 0.5),
+    legend.position = "bottom",
+    legend.justification = "center",
+    panel.grid.major.y = element_blank(),
+    panel.grid.minor = element_blank()
+  )
+
+```
+En conclusión, se puede señalar que los estudiantes que trabajan han pensado seriamente en dejar la universidad en un porcentaje mayor que quienes no trabajan. En relación con el estrés académico, se observa
+una asociación positiva entre la frecuencia con que los estudiantes se sienten estresados y la proporción de quienes pensaron seriamente en dejar la universidad. Por último, se identifica una asociación negativa entre los que se sienten más satisfechos en general con la universidad y la proporción de estudiantes que pensó seriamente en dejarla.
+
+  e) ¿Hay diferencias en la satisfacción general entre hombres y mujeres?
+  
+  En este análisis se observa que la proporción de respuestas favorables, correspondiente a Satisfechos y Muy satisfechos, fue mayor entre las mujeres que entre los hombres, con un 46,6% y 37,0%, respectivamente. Además, las respuestas desfavorables, correspondientes a Insatisfechos y Muy insatisfechos, fueron más frecuentes entre los hombres que entre las mujeres, con un 31,0% y un 24,8%, respectivamente. Finalmente, se puede señalar que la proporción de respuestas entre los Ni satisfechos ni insatisfechos fue mayor entre los hombres, con un 32,0%, que entre las mujeres, con un 28,6%.
+```{r datos_satisfaccion_sexo, echo=FALSE}
+
+library(dplyr)
+library(tidyr)
+
+categorias_satisfaccion <- c(
+  "Muy insatisfecho(a)",
+  "Insatisfecho(a)",
+  "Ni satisfecho(a) ni insatisfecho(a)",
+  "Satisfecho(a)",
+  "Muy satisfecho(a)"
+)
+
+# Selecciona hombres y mujeres con una respuesta válida de satisfacción
+datos_satisfaccion_sexo <- base_analisis_sin_pruebas %>%
+  transmute(
+    codigo_sexo = as.numeric(as.character(P2)),
+    codigo_satisfaccion = as.numeric(as.character(P5)),
+    Sexo = case_when(
+      codigo_sexo == 1 ~ "Hombre",
+      codigo_sexo == 2 ~ "Mujer",
+      TRUE ~ NA_character_
+    ),
+    Categoria = case_when(
+      codigo_satisfaccion == 1 ~ "Muy insatisfecho(a)",
+      codigo_satisfaccion == 2 ~ "Insatisfecho(a)",
+      codigo_satisfaccion == 3 ~ "Ni satisfecho(a) ni insatisfecho(a)",
+      codigo_satisfaccion == 4 ~ "Satisfecho(a)",
+      codigo_satisfaccion == 5 ~ "Muy satisfecho(a)",
+      TRUE ~ NA_character_
+    )
+  ) %>%
+  filter(!is.na(Sexo), !is.na(Categoria)) %>%
+  mutate(
+    Sexo = factor(Sexo, levels = c("Hombre", "Mujer")),
+    Categoria = factor(Categoria, levels = categorias_satisfaccion)
+  )
+
+# Calcula frecuencias y porcentajes dentro de cada grupo de sexo
+resumen_satisfaccion_sexo <- datos_satisfaccion_sexo %>%
+  count(Sexo, Categoria, name = "Frecuencia") %>%
+  complete(Sexo, Categoria, fill = list(Frecuencia = 0)) %>%
+  group_by(Sexo) %>%
+  mutate(
+    Total_validas = sum(Frecuencia),
+    Porcentaje = Frecuencia / Total_validas * 100
+  ) %>%
+  ungroup()
+
+# Organiza la tabla para comparar hombres y mujeres
+tabla_satisfaccion_sexo <- resumen_satisfaccion_sexo %>%
+  select(Categoria, Sexo, Frecuencia, Porcentaje) %>%
+  pivot_wider(
+    names_from = Sexo,
+    values_from = c(Frecuencia, Porcentaje),
+    names_glue = "{Sexo}_{.value}"
+  ) %>%
+  select(
+    Categoria,
+    Hombre_Frecuencia,
+    Hombre_Porcentaje,
+    Mujer_Frecuencia,
+    Mujer_Porcentaje
+  ) %>%
+  arrange(match(Categoria, categorias_satisfaccion))
+
+knitr::kable(
+  tabla_satisfaccion_sexo,
+  col.names = c(
+    "Categoría",
+    "Hombres (n)",
+    "Hombres (%)",
+    "Mujeres (n)",
+    "Mujeres (%)"
+  ),
+  digits = 1,
+  caption = "Distribución de la satisfacción general según sexo"
+)
+
+```
+```{r grafico_satisfaccion_sexo, fig.width=10, fig.height=6, echo=FALSE}
+
+library(ggplot2)
+
+ggplot(
+  resumen_satisfaccion_sexo,
+  aes(x = Porcentaje, y = Categoria, fill = Sexo)
+) +
+  geom_col(
+    position = position_dodge(width = 0.8),
+    width = 0.7
+  ) +
+  geom_text(
+    aes(label = paste0(round(Porcentaje, 1), "%")),
+    position = position_dodge(width = 0.8),
+    hjust = -0.15,
+    size = 3
+  ) +
+  scale_fill_manual(
+    values = c("Hombre" = "#9FC5E8", "Mujer" = "#102C68")
+  ) +
+  scale_y_discrete(limits = rev(categorias_satisfaccion)) +
+  scale_x_continuous(
+    labels = function(x) paste0(x, "%"),
+    expand = expansion(mult = c(0, 0.15))
+  ) +
+  labs(
+    title = "Satisfacción general según sexo",
+    x = "Porcentaje de respuestas",
+    y = NULL,
+    fill = NULL
+  ) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(face = "bold", hjust = 0.5),
+    legend.position = "bottom",
+    legend.justification = "center",
+    panel.grid.major.y = element_blank(),
+    panel.grid.minor = element_blank()
+  )
+
+```
+Asimismo, se puede señalar que la proporción de respuestas favorables fue mayor entre las mujeres con 9,6 puntos porcentuales, mientras que la proporción de respuestas neutrales fue 3,4 puntos porcentuales mayor entre los hombres. De modo general, se puede concluir que la satisfacción general fue mayor entre las mujeres, mientras que entre los hombres fueron más frecuentes las respuestas desfavorables y neutrales.
+
+```{r exportar_excel,include=FALSE}
+
+writexl::write_xlsx(
+  base_analisis_sin_pruebas,
+  "VF Base de analisis_Nueva.xlsx")
+```
+
