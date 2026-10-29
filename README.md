@@ -1,2 +1,2 @@
-# Proyecto-de-portafolio-en-analisis-de-datos-
-Proyecto de portafolio sobre análisis de datos y mi experiencia como consultor independiente.
+# Proyecto-personal--en-analisis-de-datos-con-RStudio
+Este es un proyecto personal de práctica sobre análisis de datos con R. La base final de resultados contiene datos simulados con fines demostrativos, por lo que no corresponde a una investigación real ni representa resultados observados.
